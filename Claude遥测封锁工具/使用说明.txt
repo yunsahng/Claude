@@ -1,0 +1,84 @@
+Claude Desktop 遥测封锁工具 使用说明
+==========================================
+
+一、这是什么
+
+Claude Desktop 桌面版会自动将使用数据上传到 Anthropic 服务器（API调用、使用统计、错误报告等）。
+这个工具通过修改 Windows hosts 文件，将所有 Anthropic 遥测域名指向 127.0.0.1，从而切断数据上传。
+
+适用于：使用 CCSwitch 等本地代理转接 DeepSeek 的用户。
+不影响：CCSwitch 代理正常工作（走本地端口，不走 hosts 域名）。
+
+
+二、使用步骤
+
+第一步：封锁遥测（需要管理员权限）
+
+  1. 右键点击 Windows 开始菜单 → 选择"终端(管理员)"或"PowerShell(管理员)"
+  2. 输入以下命令（注意路径可能不同，根据实际位置调整）：
+
+     python "C:\Users\你的用户名\Desktop\Claude遥测封锁工具\block_claude_telemetry.py"
+
+  3. 如果提示"需要管理员权限"，说明没有用管理员身份运行终端
+  4. 看到 "Done: 10 domains blocked" 就说明成功了
+
+
+第二步：验证封锁是否生效
+
+  在普通终端（不需要管理员）运行：
+
+     python "C:\Users\你的用户名\Desktop\Claude遥测封锁工具\verify_claude_block.py"
+
+  看到 "7/7 BLOCKED" 就说明封锁生效了。
+
+
+三、封锁了什么
+
+  api.anthropic.com      → API调用（你用CCSwitch后不走这里）
+  statsig.anthropic.com  → 使用统计
+  api.statsig.com        → 统计API
+  cdn.statsig.com        → 统计CDN
+  featuregates.org       → 功能开关
+  sentry.io              → 错误上报
+  o474528.ingest.sentry.io → Sentry数据收集
+  otel.otel.svc.cluster.local → 遥测指标
+  collectivist.com       → 数据收集
+  fastly.net             → CDN（遥测相关）
+
+
+四、不影响什么
+
+  CCSwitch 代理（走 127.0.0.1:15721 端口）
+  本地模型（Ollama 走 localhost:11434）
+  Claude Desktop 的对话功能（走 CCSwitch → DeepSeek）
+  Windows 系统更新
+  其他软件的网络连接
+
+
+五、还原方法
+
+  如果需要恢复，打开 hosts 文件删除标记行：
+
+  1. 以管理员身份打开记事本
+  2. 打开 C:\Windows\System32\drivers\etc\hosts
+  3. 找到所有包含 "# Claude Desktop telemetry block" 的行
+  4. 删除这些行
+  5. 保存文件
+  6. 在终端执行：ipconfig /flushdns
+
+
+六、注意事项
+
+  - 需要 Python 3.8+ 环境
+  - 需要管理员权限运行封锁脚本
+  - 验证脚本不需要管理员权限
+  - Claude Desktop 更新后可能需要重新封锁（更新可能覆盖 hosts 文件）
+  - 如果 CCSwitch 更新了端口，hosts 封锁不受影响
+
+
+七、技术原理
+
+  hosts 文件是 Windows 的本地 DNS 解析表。
+  将域名指向 127.0.0.1 后，系统解析这些域名时会指向本机，
+  而本机没有 Anthropic 的服务，所以连接被拒绝。
+  这是最干净的封锁方式，不需要安装额外软件。
